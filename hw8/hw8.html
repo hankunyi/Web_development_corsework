@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+ 	<head>
+ 		<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    	<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    	<!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <style type="text/css">
+		  body {background-image: url("http://cs-server.usc.edu:45678/hw/hw8/images/background.png")}
+			.box {background-color: white; margin-top:5px; margin-bottom:30px; padding: 10px 10px 20px; border-radius:10px;}
+      input.ng-touched.ng-invalid{
+        border: 3px solid red;
+      }
+
+
+/*
+
+      highchart {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+      }
+      */
+
+.animate-hide {
+        position: relative;
+        left: 0;
+    }
+.animate-hide.ng-hide {
+        left: -100%;
+    }
+.animate-hide.ng-hide-remove.ng-hide-remove-active {
+   -moz-transition: all ease 1s;
+        transition: all ease 1s;
+}
+.animate2-hide {
+        position: relative;
+        left: 0;
+    }
+.animate2-hide.ng-hide {
+        left: 100%;
+    }
+.animate2-hide.ng-hide-remove.ng-hide-remove-active {
+  -webkit-transition: all ease 1s;
+   -moz-transition: all ease 1s;
+        transition: all ease 1s;
+}
+
+
+		</style>
+
+  </head>
+
+  <body>
+    <div ng-app="myapp" ng-controller="appctrl">
+   	  <div class="container box">
+    		<form class="form-horizontal" role="form" name="myform"  method="GET">
+    			<div class="form-group">
+    				<H3 class="text-center"> Stock Market Search</H3>
+        				<label for="symbol" class="col-sm-3 ">Enter Stock Ticker Symbol:*</label>
+        				<div class="col-sm-6" >
+           				<input type="text" class="form-control" id="symbol" name="input" ng-model="input" placeholder="e.g.  AAPL" required >
+           				<span ng-show="myform.input.$touched &&  myform.input.$invalid  ">Please enter a stock ticker symbol.</span>
+        				</div>
+        				<div class="col-sm-3">
+        					<button type="button" id="search" class="btn btn-primary" ng-disabled="myform.input.$invalid" name="search" ng-click="getquote()">
+        						<span class="glyphicon glyphicon-search"></span> Get Quote
+        					</button>
+        					<button type="button" name="clear" class="btn" style="border:1px solid rgb(214,214,214)" ng-click="clearinfo()">
+        						<span class="glyphicon glyphicon-refresh"></span> Clear
+        					</button>
+        				</div>
+    			</div>    		
+    		</form>
+  	  </div>
+      <div class="container box" style="height:1px; padding:0"> </div> 
+
+      <div class="container box">
+        <div   id="searchpage" class="animate2-hide" ng-hide="stockdetail">
+          <table class="table table-bordered">
+
+            <tr style="background-color:rgb(237,237,237)">
+              <td>    
+                <span class="col-sm-8" style="padding:0px"><B>Favorite list</B></span>
+                <div class="col-sm-4">
+                  <span>Automatic Fresh:</span>
+                  <input type="checkbox"  checked data-toggle="toggle">
+                  <button type="button" class="btn" style="border:2px solid rgb(214,214,214)"> 
+                    <span class="glyphicon glyphicon-refresh"></span>
+                  </button>
+                  <button type="button" class="btn" ng-disabled="!detail" ng-click="toggle()" style="border:2px solid rgb(214,214,214)"> 
+                    <span class="glyphicon glyphicon-chevron-right"></span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr style="padding:10px">
+              <td>
+                <div class="col-sm-12" style="padding:15px"> 
+                  <div class="col-sm-4">
+                    <B>Sort by &nbsp&nbsp</B>
+                    <select ng-init="selectedName1 = sort1[0]" ng-model="selectedName1" ng-options="x for x in sort1"></select> 
+                  </div>
+                   <div class="col-sm-8">
+                    <B>Order &nbsp&nbsp</B> 
+                    <select ng-init="selectedName = sort2[0]" ng-model="selectedName" ng-options="y for y in sort2"></select> 
+                  </div>
+
+                </div>
+                <table class="table table-striped" id="favortable">
+                  <tr>
+                    <td><B>Symbol</B></td>
+                    <td><B>Stock Price</B></td>
+                    <td><B>Change(Change Percent)</B></td>
+                    <td><B>Volume</B></td>
+                    <td></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div  class="animate-hide" ng-show="stockdetail">
+          <table class="table table-bordered">
+            <tr style="background-color:rgb(237,237,237)">
+              <td>
+                <div class="col-sm-5">
+                  <button type="button" class="btn" ng-click="toggle()" style="border:2px solid rgb(214,214,214)"> 
+                    <span class="glyphicon glyphicon-chevron-left"></span>
+                  </button>
+                </div> 
+                <span class="col-sm-7"><B> Stock Details</B></span>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <button type="button" id="current" class="btn btn-primary" ng-click="cur();">
+                  <span class="glyphicon glyphicon-dashboard"></span> Current Stock
+                </button>
+                <button type="button" id="historical" class="btn btn-primary" ng-click="histo()">
+                  <span class="glyphicon glyphicon-stats"></span> Historical Charts
+                </button>
+                <button type="button" id="new" class="btn btn-primary" ng-click="content=2">
+                  <span class="glyphicon glyphicon-link"></span> New Feeds
+                </button>
+              </td>
+            </tr>
+            <tr id="maintable" ng-show="content==0">
+                  <td>
+                    <div id="stocktable" class="col-sm-6" style="padding:15px">
+                      <B>Stock details</B>
+                      <div style="float:right" >
+
+                        <button type="button"  class="btn btn-default" ng-click="addfavor()" ng-hide="favor" ng-disabled="!stocktable"> <span class="glyphicon glyphicon-star-empty" ></span> </button>
+                        <button type="button"  class="btn btn-default" ng-hide="!favor" ng-click="rmfavor()"> <span class="glyphicon glyphicon-star" style="color:yellow"></span> </button>
+                        <button type="button"  class="btn btn-default" ng-click="facebook()" ng-disabled=" (chart==0&& !pricechart) || (chart==1 && !SMAchart)|| (chart==2 && !EMAchart)|| (chart==3 && !STOCHchart)|| (chart==4 && !RSIchart)|| (chart==5 && !ADXchart)|| (chart==6 && !CCIchart)|| (chart==7 && !BBANDSchart)|| (chart==8 && !MACDchart)"> <img src="http://cs-server.usc.edu:45678/hw/hw8/images/facebook.png" width="18" height="18"> </button>
+                      </div>
+                      <br>
+                      <br>
+                      <br>
+                        <div ng-hide="stocktableerr">
+                          <div  ng-hide="stocktable">
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div ng-hide="!stocktable">
+                            <table class="table table-striped" >
+                              <tr>
+                                <td><B>Stock Ticker Symbol</B></td>
+                                <td id="tickersymbol"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Last Price</B></td>
+                                <td id="lastprice"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Change(Change Percent)</B></td>
+                                <td id="change"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Timestamp</B></td>
+                                <td id="timestamp"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Open</B></td>
+                                <td id="open"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Previous Close</B></td>
+                                <td id="close"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Day's Range</B></td>
+                                <td id="dayrange"></td>
+                              </tr>
+                              <tr>
+                                <td><B>Volume</B></td>
+                                <td id="volume"></td>
+                              </tr>
+                            </table>
+                          </div>
+                        </div>
+                        <div ng-hide="!stocktableerr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get current stock data.
+                        </div> 
+                    </div>
+                    <div id="chart" class="col-sm-6">
+                      <div style="border-style:none none none none">
+                        <button type="button"  class="btn btn-default" id="c0" style="border:none" ng-click="priceclick()"> price </button>
+                        <button type="button"  class="btn btn-default" id="c1" style="border:none" ng-click="SMAclick()"> SMA </button>
+                        <button type="button"  class="btn btn-default" id="c2" style="border:none" ng-click="EMAclick()"> EMA </button>
+                        <button type="button"  class="btn btn-default" id="c3" style="border:none" ng-click="STOCHclick()"> STOCH </button>
+                        <button type="button"  class="btn btn-default" id="c4" style="border:none" ng-click="RSIclick()"> RSI </button>
+                        <button type="button"  class="btn btn-default" id="c5" style="border:none" ng-click="ADXclick()"> ADX </button>
+                        <button type="button"  class="btn btn-default" id="c6" style="border:none" ng-click="CCIclick()"> CCI </button>
+                        <button type="button"  class="btn btn-default" id="c7" style="border:none" ng-click="BBANDSclick()"> BBANDS </button>
+                        <button type="button"  class="btn btn-default" id="c8" style="border:none" ng-click="MACDclick()"> MACD </button>
+                      </div>
+                      <div ng-show="chart==0">
+                        <div ng-hide="pricecharterr">
+                          <div ng-hide='pricechart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="pricestock"  ng-hide="!pricechart">
+                          </div>
+                        </div>
+                        <div ng-hide="!pricecharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get Price data.
+                        </div> 
+                      </div>
+                      <div ng-show="chart==1">
+                        <div ng-hide="SMAcharterr">
+                          <div ng-hide='SMAchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="SMA"  ng-hide="!SMAchart">
+                          </div>
+                        </div>
+                         <div ng-hide="!SMAcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get SMA data.
+                        </div> 
+                      </div>
+                      <div ng-show="chart==2">
+                        <div ng-hide="EMAcharterr">
+                          <div ng-hide='EMAchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="EMA"  ng-hide="!EMAchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!EMAcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get EMA data.
+                        </div> 
+                      </div>
+
+                      <div ng-show="chart==3">
+                        <div ng-hide="STOCHcharterr">
+                          <div ng-hide='STOCHchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="STOCH"  ng-hide="!STOCHchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!STOCHcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get STOCH data.
+                        </div> 
+                      </div>
+
+                      <div ng-show="chart==4">
+                        <div ng-hide="RSIcharterr">
+                          <div ng-hide='RSIchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="RSI"  ng-hide="!RSIchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!RSIcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get RSI data.
+                        </div> 
+                      </div>
+
+                      <div ng-show="chart==5">
+                        <div ng-hide="ADXcharterr">
+                          <div ng-hide='ADXchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="ADX"  ng-hide="!ADXchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!ADXcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get ADX data.
+                        </div> 
+
+                      </div>
+
+                      <div ng-show="chart==6">
+                        <div ng-hide="CCIcharterr">
+                          <div ng-hide='CCIchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="CCI"  ng-hide="!CCIchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!CCIcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get CCI data.
+                        </div> 
+                      </div>
+
+                      <div ng-show="chart==7">
+                        <div ng-hide="BBANDScharterr">
+                          <div ng-hide='BBANDSchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="BBANDS"  ng-hide="!BBANDSchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!BBANDScharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get BBANDS data.
+                        </div> 
+                      </div>
+
+
+
+                      <div ng-show="chart==8">
+                        <div ng-hide="MACDcharterr">
+                          <div ng-hide='MACDchart'>
+                            <br>
+                            <br>
+                            <br>
+                            <div class="progress">
+                              <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                            </div>
+                          </div>
+                          <div id="MACD"  ng-hide="!MACDchart">
+                          </div>
+                        </div>
+                        <div ng-hide="!MACDcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get MACD data.
+                        </div> 
+
+                      </div>
+
+
+
+
+
+                    </div>
+                  </td>
+            </tr>
+            <tr  ng-show="content==1">
+              <td>
+                 <div ng-hide='stockcharterr'>
+                    <div ng-hide='stockchart'>
+                      <br>
+                      <br>
+                      <br>
+                      <div class="progress">
+                          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                      </div>
+                    </div>
+                    <div id="stock"  ng-hide="!stockchart">
+                    </div>
+                  </div>
+                  <div ng-hide="!stockcharterr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get historical charts data.
+                  </div> 
+              </td>
+            </tr>
+            <tr ng-show="content==2">
+              <td>
+                 <div ng-hide='newserr'>
+                    <div ng-hide='news'>
+                      <br>
+                      <br>
+                      <br>
+                      <div class="progress">
+                          <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:50%"> </div>
+                      </div>
+                    </div>
+                    <div id="newstable" ng-hide="!news"></div>
+                  </div>
+                  <div ng-hide="!newserr" style="background-color:lightpink;border:1px solid red; margin:5px;color:red;padding:15px">
+                          Error! Failed to get news feed data.
+                  </div> 
+
+              </td>
+            </tr>
+
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+ 	  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+ 	  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+ 	  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular-animate.js"></script>
+    <!--<script src="https://code.highcharts.com/highcharts.js"></script> -->
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="http://code.highcharts.com/modules/exporting.js"></script>
+    <script src="http://connect.facebook.net/en_US/all.js"></script>
+    <script src="hw8.js"></script>
+  </body>
+</html>
